@@ -1,0 +1,23 @@
+name: CI process
+on: [push]
+
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: [3.13]
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Install python
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{matrix.python}}
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Check code by Ruff
+        run: ruff check
