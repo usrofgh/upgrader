@@ -1,5 +1,6 @@
 __pycache__
 .idea
+.ruff_cache
 .venv
 .env*
 accounts.json
