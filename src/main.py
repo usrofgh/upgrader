@@ -13,8 +13,8 @@ sys.path.append(str(Path(__file__).parent))
 
 async def main():
     settings = Settings()
-    web_share = WebShareManager(webshare_api=settings.WEBSHARE_API)
-    web_share.proxy_list = web_share.get_proxy_str_list(page_size=30)
+    web_share = WebShareManager(webshare_api=settings.WEBSHARE_API, proxy_list_path=settings.PROXY_LIST_PATH)
+    # web_share.proxy_list = web_share.get_proxy_str_list(page_size=30)
 
     captcha_manager = CaptchaManager(
         api_keys=settings.TWOCAPTCHA_API_KEYS,

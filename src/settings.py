@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     COOKIES: dict[str, dict] = {}
 
     LOGS_PATH: str
+    PROXY_LIST_PATH: str
     WEBSHARE_API: str
     TWOCAPTCHA_API_KEYS: str | list
     CAPTCHA_SITE_KEY: str
@@ -33,6 +34,7 @@ class Settings(BaseSettings):
         self.LOGS_PATH = self.full_path(self.LOGS_PATH)
         self.ACCOUNTS_PATH = self.full_path(self.ACCOUNTS_PATH)
         self.COOKIES_PATH = self.full_path(self.COOKIES_PATH)
+        self.PROXY_LIST_PATH = self.full_path(self.PROXY_LIST_PATH)
 
         self.TWOCAPTCHA_API_KEYS = [k.strip() for k in self.TWOCAPTCHA_API_KEYS.split(",")]
 
