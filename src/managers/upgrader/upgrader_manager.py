@@ -31,26 +31,24 @@ class UpgraderManager:
                 self._stat.print_stat()
                 return
 
-        while True:
-            if self._captcha_manager.captcha_token_pool:
-                token = self._captcha_manager.captcha_token_pool.pop(0)
+        if self._captcha_manager.captcha_token_pool:
+            token = await self._captcha_manager.captcha_token_pool.get()
+            response = await self._promo.promo_activate(client, token)
+            if response.status_code == 401:
+                await self._auth.login(client)
+                token = await self._captcha_manager.captcha_token_pool.get()
                 response = await self._promo.promo_activate(client, token)
-                if response.status_code == 401:
-                    await self._auth.login(client)
-                    continue
 
-                resp_data = response.json()
-                if resp_data.get("error"):
-                    self._stat.add_error(client.auth_data["email"], resp_data["msg"])
-                    self._stat.print_stat()
-                else:
-                    income = resp_data["msg"].split("$")[-1].strip()
-                    self._stat.TOTAL_ACTIVATIONS += 1
-                    self._stat.TOTAL_INCOME += float(income)
-                    self._stat.print_stat()
+            resp_data = response.json()
+            if resp_data.get("error"):
+                self._stat.add_error(client.auth_data["email"], resp_data["msg"])
+                self._stat.print_stat()
+            else:
+                income = resp_data["msg"].split("$")[-1].strip()
+                self._stat.TOTAL_ACTIVATIONS += 1
+                self._stat.TOTAL_INCOME += float(income)
+                self._stat.print_stat()
 
-                break
-            await asyncio.sleep(1)
 
         cookies = dict(client.cookies)
         self._settings.COOKIES[client.auth_data["email"]] = cookies
