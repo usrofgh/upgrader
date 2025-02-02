@@ -1,16 +1,33 @@
+import asyncio
+import json
+
 import httpx
 from httpx import AsyncClient
 
+from managers.captcha_manager import CaptchaManager
+from managers.upgrader.services.account_service import AccountService
+from managers.upgrader.services.client_service import ClientService
+from managers.upgrader.services.stat_service import StatService
 from settings import Settings
 
 
 class PromoService:
-    def __init__(self, settings: Settings):
+    def __init__(
+            self,
+            settings: Settings,
+            account: AccountService,
+            stat: StatService,
+            client: ClientService,
+            captcha: CaptchaManager,
+    ):
         self._settings = settings
+        self._account = account
+        self._stat = stat
+        self._client = client
+        self._captcha = captcha
         self.curr_promo = None
 
-
-    async def promo_activate(self, client: AsyncClient, captcha_token: str) -> httpx.Response:
+    async def _activate_promo(self, client: AsyncClient, captcha_token: str) -> httpx.Response:
         endpoint = "https://api.upgrader.com/reward/promo/claim"
         data = {
             "promoCode": self.curr_promo,
@@ -21,5 +38,59 @@ class PromoService:
         return response
 
 
-    def input_promo(self) -> None:
+    async def _flow(self, client: AsyncClient) -> None:
+        self._stat.print_stat()
+        if "auth" not in client.headers:
+            response = await self._account.login(client)
+            resp_data = response.json()
+            if resp_data.get("error"):
+                self._stat.update_not_activated_list(client.auth_data["email"], resp_data["msg"])
+                self._stat.print_stat()
+                return
+
+        while True:
+            if not self._captcha.captcha_token_pool:
+                await asyncio.sleep(1)
+                continue
+
+            token = self._captcha.captcha_token_pool.pop(0)
+            response = await self._activate_promo(client, token)
+            if response.status_code == 401:
+                await self._account.login(client)
+                await asyncio.sleep(1)
+                continue
+
+            resp_data = response.json()
+            if resp_data.get("error"):
+                self._stat.update_not_activated_list(client.auth_data["email"], resp_data["msg"])
+                self._stat.print_stat()
+            else:
+                income = resp_data["msg"].split("$")[-1].strip()
+                self._stat.TOTAL_ACTIVATIONS += 1
+                self._stat.TOTAL_INCOME += float(income)
+                self._stat.print_stat()
+
+            break
+
+
+        cookies = dict(client.cookies)
+        self._settings.COOKIES[client.auth_data["email"]] = cookies
+
+    async def _run_bg_captcha_mining(self) -> None:
+        for _ in range(len(self._client.clients) * 2):
+            asyncio.create_task(self._captcha.solve_captcha())
+
+    async def run_activation_process(self) -> None:
+        await self._run_bg_captcha_mining()
         self.curr_promo = input("PROMO: ")
+        self._stat.reset_stat()
+        await asyncio.gather(*[self._flow(c) for c in self._client.clients])
+
+        with open(self._settings.LOGS_PATH, "a") as file:
+            log = self._stat.print_stat() + "\n\n"
+            file.write(log)
+
+        with open(self._settings.COOKIES_PATH, "w") as file:
+            json.dump(self._settings.COOKIES, file, indent=4)
+
+        input("ENTER ANY LETTER TO STOP: ")

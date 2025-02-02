@@ -1,72 +1,46 @@
 import asyncio
-import json
 
 from httpx import AsyncClient
 
 from managers.captcha_manager import CaptchaManager
-from managers.upgrader.services.auth_service import AuthService
+from managers.upgrader.services.account_service import AccountService
 from managers.upgrader.services.client_service import ClientService
 from managers.upgrader.services.promo_service import PromoService
 from managers.upgrader.services.stat_service import StatService
+from managers.webshare_manager import WebShareManager
 from settings import Settings
 
 
 class UpgraderManager:
-    def __init__(self, settings: Settings, captcha_manager: CaptchaManager):
-        self._settings = settings
-        self._auth = AuthService(settings)
-        self._promo = PromoService(settings)
-        self._stat = StatService(settings)
-        self._client = ClientService(settings)
-        self._captcha_manager = captcha_manager
+    def __init__(
+            self,
+            settings: Settings,
+            captcha_manager: CaptchaManager,
+            web_share_manager: WebShareManager
+    ):
+        self.captcha_manager = captcha_manager
+        self.web_share = web_share_manager
+        self.account = AccountService(settings)
+        self.accounts = self.account.accounts
+        self.client = ClientService(settings)
+        self.stat = StatService(len(self.accounts))
+        self.promo = PromoService(settings, self.account, self.stat, self.client, self.captcha_manager)
 
+    async def prepare_upgrader(self) -> None:
+        self.client.clients = await self.client.initialize_clients(self.accounts, self.web_share.proxy_list)
 
-    async def _flow(self, client: AsyncClient) -> None:
-        self._stat.print_stat()
-        if "auth" not in client.headers:
-            response = await self._auth.login(client)
-            resp_data = response.json()
-            if resp_data.get("error"):
-                self._stat.add_error(client.auth_data["email"], resp_data["msg"])
-                self._stat.print_stat()
-                return
+    async def activate_promocodes(self) -> None:
+        await self.promo.run_activation_process()
 
-        if self._captcha_manager.captcha_token_pool:
-            token = await self._captcha_manager.captcha_token_pool.get()
-            response = await self._promo.promo_activate(client, token)
-            if response.status_code == 401:
-                await self._auth.login(client)
-                token = await self._captcha_manager.captcha_token_pool.get()
-                response = await self._promo.promo_activate(client, token)
+    async def get_account_balance(self, client: AsyncClient) -> dict:
+        return await self.account.get_balance(client)
 
-            resp_data = response.json()
-            if resp_data.get("error"):
-                self._stat.add_error(client.auth_data["email"], resp_data["msg"])
-                self._stat.print_stat()
-            else:
-                income = resp_data["msg"].split("$")[-1].strip()
-                self._stat.TOTAL_ACTIVATIONS += 1
-                self._stat.TOTAL_INCOME += float(income)
-                self._stat.print_stat()
+    async def get_all_account_balances(self) -> dict:
+        tasks = []
+        for client in self.client.clients:
+            task = self.get_account_balance(client)
+            tasks.append(task)
 
-
-        cookies = dict(client.cookies)
-        self._settings.COOKIES[client.auth_data["email"]] = cookies
-
-    async def run_activation_process(self) -> None:
-        print("==========     START     ==========")
-
-        clients = await self._client.initialize_clients()
-        self._stat.reset_stat()
-        self._promo.input_promo()
-        self._stat.curr_promo = self._promo.curr_promo
-        await asyncio.gather(*[self._flow(c) for c in clients])
-
-        with open(self._settings.LOGS_PATH, "a") as file:
-            log = self._stat.print_stat() + "\n\n"
-            file.write(log)
-
-        with open(self._settings.COOKIES_PATH, "w") as file:
-            json.dump(self._settings.COOKIES, file, indent=4)
-
-        input("ENTER ANY LETTER TO STOP: ")
+        balances: list[dict] = await asyncio.gather(*tasks)
+        balances = {{**b} for b in balances}
+        return balances

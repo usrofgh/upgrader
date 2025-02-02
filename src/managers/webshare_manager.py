@@ -1,15 +1,15 @@
 import httpx
 
-from settings import Settings
-
 
 class WebShareManager:
-    def __init__(self, settings: Settings) -> None:
-        self._settings = settings
+    def __init__(self, webshare_api: str) -> None:
+        self._webshare_api = webshare_api
+        self.proxy_list = []
+
 
     def get_proxy_list(self, page_size: int) -> dict:
         endpoint = "https://proxy.webshare.io/api/v2/proxy/list/"
-        headers = {"Authorization": self._settings.WEBSHARE_API}
+        headers = {"Authorization": self._webshare_api}
         params = {"mode": "direct", "page": 1, "page_size": page_size}
         response = httpx.get(endpoint, headers=headers, params=params)
         return response.json()

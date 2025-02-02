@@ -2,7 +2,7 @@ __pycache__
 .idea
 .ruff_cache
 .venv
-.env*
-accounts.json
+.env
+src/configs/accounts.json
 cookies.json
 logs.log

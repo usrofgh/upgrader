@@ -1,5 +1,4 @@
 import json
-import os.path
 from pathlib import Path
 from typing import Any
 
@@ -16,16 +15,16 @@ class Settings(BaseSettings):
 
     LOG_LEVEL: str
     ACCOUNTS_PATH: str
-    ACCOUNTS: list[dict] = []
 
     COOKIES_PATH: str
     COOKIES: dict[str, dict] = {}
 
     LOGS_PATH: str
     WEBSHARE_API: str
-    TWOCAPTCHA_API: str
+    TWOCAPTCHA_API_KEYS: str | list
+    CAPTCHA_SITE_KEY: str
+    SITE_BASE_URL: str
 
-    PROXY_LIST: list = []
 
 
     def model_post_init(self, __context: Any) -> None:
@@ -33,11 +32,9 @@ class Settings(BaseSettings):
 
         self.LOGS_PATH = self.full_path(self.LOGS_PATH)
         self.ACCOUNTS_PATH = self.full_path(self.ACCOUNTS_PATH)
-        self.ACCOUNTS = self.upload_json(self.full_path(self.ACCOUNTS_PATH))
-
         self.COOKIES_PATH = self.full_path(self.COOKIES_PATH)
-        if os.path.exists(self.COOKIES_PATH):
-            self.COOKIES = self.upload_json(self.COOKIES_PATH)
+
+        self.TWOCAPTCHA_API_KEYS = [k.strip() for k in self.TWOCAPTCHA_API_KEYS.split(",")]
 
 
     @staticmethod
