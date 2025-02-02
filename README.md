@@ -1,0 +1,1 @@
+The scripts which allows to automate a promo-activation process
