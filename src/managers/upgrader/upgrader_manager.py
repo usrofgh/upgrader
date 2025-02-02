@@ -24,8 +24,11 @@ class UpgraderManager:
     async def _flow(self, client: AsyncClient) -> None:
         self._stat.print_stat()
         if "auth" not in client.headers:
-            is_logged = await self._auth.login(client)
-            if not is_logged:
+            response = await self._auth.login(client)
+            resp_data = response.json()
+            if resp_data.get("error"):
+                self._stat.add_error(client.auth_data["email"], resp_data["msg"])
+                self._stat.print_stat()
                 return
 
         while True:
