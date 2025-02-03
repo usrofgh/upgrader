@@ -13,6 +13,7 @@ class AccountService:
         response = await client.get(endpoint)
         if response.status_code == 401:
             await self.login(client)
+            response = await client.get(endpoint)
         data = response.json()
         balance = float(data["data"]["balance"])
         res = {client.auth_data["email"]: balance}

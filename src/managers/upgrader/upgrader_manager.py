@@ -1,4 +1,5 @@
 import asyncio
+import random
 
 from httpx import AsyncClient
 
@@ -35,12 +36,18 @@ class UpgraderManager:
     async def get_account_balance(self, client: AsyncClient) -> dict:
         return await self.account.get_balance(client)
 
+    async def _get_account_balance_delay(self, client: AsyncClient) -> dict:
+        await asyncio.sleep(random.uniform(1, 3))
+        return await self.account.get_balance(client)
+
     async def get_all_account_balances(self) -> dict:
         tasks = []
         for client in self.client.clients:
-            task = self.get_account_balance(client)
+            task = self._get_account_balance_delay(client)
             tasks.append(task)
 
-        balances: list[dict] = await asyncio.gather(*tasks)
-        balances = {{**b} for b in balances}
-        return balances
+        balance_data: list[dict] = await asyncio.gather(*tasks)
+        res = {}
+        for el in balance_data:
+            res.update(el)
+        return res

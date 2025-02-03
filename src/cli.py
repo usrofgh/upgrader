@@ -30,7 +30,7 @@ class CLI:
             "==========     MENU     ==========",
             "[1] ACTIVATE PROMO",
             "[2] ACCOUNT BALANCE",
-            "[3] ALL ACCOUNTS BALANCE",
+            "[3] TOTAL BALANCE",
             "[q] STOP PROGRAM",
         ]
         msg = "\n".join(menu)
@@ -38,8 +38,6 @@ class CLI:
         print(msg)
 
     def _select_option(self) -> str:
-
-
         while True:
             os.system("cls")
             self._display_menu()
@@ -47,6 +45,7 @@ class CLI:
             choice = input("> ").lower()
             if choice in "123q":
                 return choice
+
 
     async def _activate_promocodes(self) -> None:
         await self._upgrader_manager.activate_promocodes()
@@ -66,10 +65,9 @@ class CLI:
 
         msg = "\n".join(menu)
         msg = f"{GREEN}{msg}{RESET}"
+        print(msg)
 
         while True:
-            os.system("cls")
-            print(msg)
             n = input("> ").lower()
             if n in "bq":
                 return n
@@ -80,11 +78,36 @@ class CLI:
                 continue
 
             client = [c for c in self._upgrader_manager.client.clients if c.auth_data['email']][0]
-            balance = await self._upgrader_manager.get_account_balance(client)
-            print(f"BALANCE: {balance}")
+            balance_info = await self._upgrader_manager.get_account_balance(client)
+            for email, balance in balance_info.items():
+                print(f"{email} - {balance}$")
 
     async def _get_total_account_balances(self) -> None:
-        pass
+        res = await self._upgrader_manager.get_all_account_balances()
+        os.system("cls")
+        menu = [
+            "==========     TOTAL BALANCE     ==========",
+        ]
+
+        total_balance = 0
+        i = 0
+        for email, balance in res.items():
+            total_balance += balance
+            msg = f"{i}. {email}: {balance}"
+            menu.append(msg)
+            i += 1
+        msg = f"\nTOTAL BALANCE: {total_balance}"
+
+        menu.append(msg)
+        msg = "\n".join(menu)
+        msg = f"{GREEN}{msg}{RESET}"
+        print(msg)
+        print()
+        print("[b] Back")
+        while True:
+            v = input("> ").lower()
+            if v == "b":
+                break
 
     async def run(self):
         while True:
