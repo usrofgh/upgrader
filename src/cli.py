@@ -77,7 +77,7 @@ class CLI:
             if n not in list(range(len(self._upgrader_manager.accounts))):
                 continue
 
-            client = [c for c in self._upgrader_manager.client.clients if c.auth_data['email']][0]
+            client = self._upgrader_manager.client.clients[n]
             balance_info = await self._upgrader_manager.get_account_balance(client)
             for email, balance in balance_info.items():
                 print(f"{email} - {balance}$")
