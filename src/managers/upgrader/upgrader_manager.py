@@ -21,9 +21,9 @@ class UpgraderManager:
     ):
         self.captcha_manager = captcha_manager
         self.web_share = web_share_manager
-        self.account = AccountService(settings)
-        self.accounts = self.account.accounts
         self.client = ClientService(settings)
+        self.account = AccountService(settings, self.client)
+        self.accounts = self.account.accounts
         self.stat = StatService(len(self.accounts))
         self.promo = PromoService(settings, self.account, self.stat, self.client, self.captcha_manager)
 

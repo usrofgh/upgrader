@@ -26,10 +26,11 @@ headers = {
 
 class ClientService:
     def __init__(self, settings: Settings):
+        self._cookies_path = settings.COOKIES_PATH
         self.clients = []
 
         try:
-            self._cookies = settings.upload_json(settings.COOKIES_PATH)
+            self._cookies = settings.upload_json(self._cookies_path)
         except FileNotFoundError:
             self._cookies = {}
 
@@ -51,7 +52,6 @@ class ClientService:
         now = int(datetime.datetime.now().timestamp())
         is_exp = (exp - now) < 86_000  # expired if jwt will be expired within 1 day
         return is_exp
-
 
 
     async def _initialize_client(self, acc: dict, proxy: str = None) -> AsyncClient:
@@ -76,3 +76,8 @@ class ClientService:
 
         clients = await asyncio.gather(*tasks)
         return clients
+
+    def update_cookies(self, email: str, cookies: dict) -> None:
+        self._cookies[email] = cookies
+        with open(self._cookies_path, "w") as file:
+            json.dump(self._cookies, file, indent=4)

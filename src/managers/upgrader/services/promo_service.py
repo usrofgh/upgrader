@@ -40,13 +40,16 @@ class PromoService:
 
     async def _flow(self, client: AsyncClient) -> None:
         self._stat.print_stat()
+        email = client.auth_data["email"]
         if "auth" not in client.headers:
             response = await self._account.login(client)
             resp_data = response.json()
             if resp_data.get("error"):
-                self._stat.update_not_activated_list(client.auth_data["email"], resp_data["msg"])
+                self._stat.update_not_activated_list(email, resp_data["msg"])
                 self._stat.print_stat()
                 return
+            else:
+                self._client.update_cookies(email, dict(client.cookies))
 
         while True:
             if not self._captcha.captcha_token_pool:
@@ -57,6 +60,7 @@ class PromoService:
             response = await self._activate_promo(client, token)
             if response.status_code == 401:
                 await self._account.login(client)
+                self._client.update_cookies(email, dict(client.cookies))
                 await asyncio.sleep(1)
                 continue
 
@@ -89,8 +93,5 @@ class PromoService:
         with open(self._settings.LOGS_PATH, "a") as file:
             log = self._stat.print_stat() + "\n\n"
             file.write(log)
-
-        with open(self._settings.COOKIES_PATH, "w") as file:
-            json.dump(self._settings.COOKIES, file, indent=4)
 
         input("ENTER ANY LETTER TO STOP: ")

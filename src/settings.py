@@ -17,7 +17,6 @@ class Settings(BaseSettings):
     ACCOUNTS_PATH: str
 
     COOKIES_PATH: str
-    COOKIES: dict[str, dict] = {}
 
     LOGS_PATH: str
     PROXY_LIST_PATH: str
