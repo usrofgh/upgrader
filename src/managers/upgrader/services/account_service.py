@@ -15,7 +15,7 @@ class AccountService:
             await self.login(client)
             response = await client.get(endpoint)
         data = response.json()
-        balance = float(data["data"]["balance"])
+        balance = float(data["data"]["balance"]) / 100
         res = {client.auth_data["email"]: balance}
         return res
 
