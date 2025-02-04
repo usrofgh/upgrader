@@ -1,5 +1,4 @@
 import asyncio
-import json
 
 import httpx
 from httpx import AsyncClient
@@ -78,7 +77,7 @@ class PromoService:
 
 
         cookies = dict(client.cookies)
-        self._settings.COOKIES[client.auth_data["email"]] = cookies
+        self._client._cookies[client.auth_data["email"]] = cookies
 
     async def _run_bg_captcha_mining(self) -> None:
         for _ in range(len(self._client.clients) * 2):
