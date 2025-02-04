@@ -1,5 +1,6 @@
 import asyncio
 import random
+import time
 
 from twocaptcha import TwoCaptcha
 
@@ -14,16 +15,13 @@ class CaptchaManager:
 
         self._curr_solver = 0
 
-    def _solve_captcha_sync(self) -> None:
+    def solve_captcha(self) -> None:
         solver = self._solvers[self._curr_solver]
         if self._curr_solver == len(self._solvers) - 1:
             self._curr_solver = 0
         else:
             self._curr_solver += 1
 
-        return solver.hcaptcha(sitekey=self._site_key, url=self._base_url)["code"]
-
-    async def solve_captcha(self) -> None:
-        await asyncio.sleep(random.uniform(0, 2))
-        code = await asyncio.to_thread(self._solve_captcha_sync)
+        time.sleep(random.uniform(1, 3))
+        code = solver.hcaptcha(sitekey=self._site_key, url=self._base_url)["code"]
         self.captcha_token_pool.append(code)

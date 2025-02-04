@@ -1,4 +1,5 @@
 import asyncio
+import threading
 
 import httpx
 from httpx import AsyncClient
@@ -79,12 +80,15 @@ class PromoService:
         cookies = dict(client.cookies)
         self._client._cookies[client.auth_data["email"]] = cookies
 
-    async def _run_bg_captcha_mining(self) -> None:
-        for _ in range(len(self._client.clients) * 2):
-            asyncio.create_task(self._captcha.solve_captcha())
+    def _solve_captcha(self) -> None:
+        self._captcha.solve_captcha()
 
     async def run_activation_process(self) -> None:
-        await self._run_bg_captcha_mining()
+        for _ in range(len(self._client.clients) * 2):
+            thread = threading.Thread(target=self._solve_captcha)
+            thread.start()
+
+
         self.curr_promo = input("PROMO: ")
         self._stat.reset_stat()
         await asyncio.gather(*[self._flow(c) for c in self._client.clients])
