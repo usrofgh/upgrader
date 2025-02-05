@@ -55,16 +55,18 @@ class ClientService:
 
 
     async def _initialize_client(self, acc: dict, proxy: str = None) -> AsyncClient:
-        client = await asyncio.to_thread(AsyncClient, headers=headers, timeout=60, proxy=f"http://{proxy}")
+        client: AsyncClient = await asyncio.to_thread(AsyncClient, headers=headers, timeout=60, proxy=f"http://{proxy}")
         client.auth_data = {**acc}
         cookies = self._cookies.get(acc["email"], {})
         auth_token = cookies.get("auth")
-        if cookies:
-            if not self._is_jwt_expired(auth_token):
-                client.headers["auth"] = cookies.pop("auth")
+        if auth_token and self._is_jwt_expired(auth_token):
+            del cookies["auth"]
 
-            for cookie in cookies:
-                client.cookies.set(**cookie, domain=".upgrader.com", path="/")
+        for name, value in cookies.items():
+            domain = ".upgrader.com"
+            if name == "auth":
+                domain = "api.upgrader.com"
+            client.cookies.set(name=name, value=value, domain=domain, path="/")
         return client
 
     async def initialize_clients(self, accounts: list[dict], proxy_list: list[str]) -> list[AsyncClient]:
