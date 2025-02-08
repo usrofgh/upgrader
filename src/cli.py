@@ -46,7 +46,6 @@ class CLI:
             if choice in "123q":
                 return choice
 
-
     async def _activate_promocodes(self) -> None:
         await self._upgrader_manager.activate_promocodes()
 
@@ -61,7 +60,6 @@ class CLI:
         menu.append("\n")
         menu.append("[b] BACK")
         menu.append("[q] STOP PROGRAM")
-
 
         msg = "\n".join(menu)
         msg = f"{GREEN}{msg}{RESET}"
@@ -111,8 +109,8 @@ class CLI:
 
     async def run(self):
         while True:
-            choice = self._select_option().lower()
-            # choice = "1"
+            # choice = self._select_option().lower()
+            choice = "1"
             if choice == "q":
                 break
 
@@ -122,7 +120,7 @@ class CLI:
                 "3": self._get_total_account_balances,
             }
             res = await choice_map[choice]()  # noqa
-            # break
+            break
 
-            # if res == "q":
-            #     break
+            if res == "q":
+                break

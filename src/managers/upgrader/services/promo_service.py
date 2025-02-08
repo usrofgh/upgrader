@@ -41,7 +41,7 @@ class PromoService:
     async def _flow(self, client: AsyncClient) -> None:
         self._stat.print_stat()
         email = client.auth_data["email"]
-        if "auth" not in client.headers:
+        if "auth" not in client.cookies:
             response = await self._account.login(client)
             resp_data = response.json()
             if resp_data.get("error"):
@@ -56,7 +56,7 @@ class PromoService:
                 await asyncio.sleep(1)
                 continue
 
-            token = self._captcha.captcha_token_pool.pop(0)
+            token = self._captcha.extract_oldest_token()
             response = await self._activate_promo(client, token)
             if response.status_code == 401:
                 await self._account.login(client)
@@ -76,18 +76,20 @@ class PromoService:
 
             break
 
-
         cookies = dict(client.cookies)
         self._client._cookies[client.auth_data["email"]] = cookies
 
     def _solve_captcha(self) -> None:
         self._captcha.solve_captcha()
 
+    def keep_tokens_fresh(self) -> None:
+        self._captcha.keep_tokens_fresh()
+
     async def run_activation_process(self) -> None:
-        for _ in range(len(self._client.clients) * 2):
+        for _ in range(len(self._client.clients)):
             thread = threading.Thread(target=self._solve_captcha)
             thread.start()
-
+        threading.Thread(target=self.keep_tokens_fresh).start()
 
         self.curr_promo = input("PROMO: ")
         self._stat.reset_stat()
